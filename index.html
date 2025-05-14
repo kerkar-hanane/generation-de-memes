@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Générateur de Mèmes Ultra Girly</title>
+  <style>
+    /* Styles généraux pour donner une ambiance féminine et douce */
+    body {
+      font-family: "Comic Sans MS", cursive, sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom right, #fff0f5, #ffe6f0);
+      color: #8b008b;
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* Effet d'ombre sur le titre principal */
+    h1 {
+      text-shadow: 2px 2px 5px #ff69b4;
+      margin-bottom: 20px;
+    }
+
+    /* Style de la zone canvas pour dessiner le mème */
+    canvas {
+      border: 4px solid #ff69b4;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(255, 105, 180, 0.5);
+      border-radius: 20px;
+      cursor: grab;
+    }
+
+    /* Style général pour les champs de saisie, menus et boutons */
+    input, button, select, label {
+      font-size: 14px;
+      border: none;
+      outline: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin: 5px;
+      box-shadow: 0 4px 6px rgba(255, 182, 193, 0.6);
+      background: #ffe6eb;
+      color: #8b008b;
+    }
+
+    /* Style des champs texte et des menus déroulants */
+    input[type="text"], select {
+      min-width: 120px;
+    }
+
+    /* Style spécifique pour les sélecteurs de couleur */
+    input[type="color"] {
+      padding: 2px;
+      height: 38px;
+      width: 38px;
+      border-radius: 50%;
+      border: 2px solid #ff69b4;
+    }
+
+    /* Style pour les boutons avec effet de survol */
+    button {
+      background-color: #ffb6c1;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #ff69b4;
+      transform: scale(1.05);
+    }
+
+    /* Organisation des contrôles de texte */
+    .text-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    /* Style de la galerie de mèmes */
+    .gallery img {
+      width: 100px;
+      margin: 5px;
+      border: 3px solid #db7093;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <!-- Titre de la page -->
+  <h1>✨ Générateur de Mèmes Féérique ✨</h1>
+
+  <!-- Input pour charger une image -->
+  <input type="file" id="imageUpload" accept="image/*"><br>
+
+  <!-- Section de contrôle du texte : saisie, style, couleur, surligneur -->
+  <div class="text-controls">
+    <input type="text" id="memeText" placeholder="Entrez votre texte magique">
+    
+    <!-- Choix de la police -->
+    <select id="fontFamily">
+      <option value="Comic Sans MS">Comic Sans MS</option>
+      <option value="Arial">Arial</option>
+      <option value="Times New Roman">Times New Roman</option>
+      <option value="Courier New">Courier New</option>
+    </select>
+
+    <!-- Taille de la police -->
+    <input type="number" id="fontSize" value="32" min="10" max="100" style="width: 60px;">
+
+    <!-- Couleur du texte -->
+    <input type="color" id="fontColor" value="#ffffff" title="Couleur du texte">
+
+    <!-- Styles : gras, italique, surlignage -->
+    <label><input type="checkbox" id="bold"> <b>Gras</b></label>
+    <label><input type="checkbox" id="italic"> <i>Italique</i></label>
+    <label><input type="checkbox" id="highlight"> <span style="background-color: #ffff00;">Surligner</span></label>
+
+    <!-- Couleur du surligneur -->
+    <input type="color" id="highlightColor" value="#ffff00" title="Couleur du surligneur">
+
+    <!-- Bouton pour ajouter le texte sur le canvas -->
+    <button onclick="addText()">Ajouter Texte</button>
+  </div>
+
+  <!-- Zone de dessin -->
+  <canvas id="canvas" width="400" height="400"></canvas><br>
+
+  <!-- Boutons pour télécharger ou partager le mème -->
+  <button onclick="downloadMeme()">💾 Télécharger</button>
+  <button onclick="shareMeme()">📤 Partager</button>
+
+  <!-- Galerie des mèmes enregistrés -->
+  <h2>💖 Galerie</h2>
+  <div class="gallery" id="gallery"></div>
+
+  <script>
+    // Récupération des éléments HTML
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const imageInput = document.getElementById("imageUpload");
+    const gallery = document.getElementById("gallery");
+
+    const textInput = document.getElementById("memeText");
+    const fontFamilyInput = document.getElementById("fontFamily");
+    const fontSizeInput = document.getElementById("fontSize");
+    const fontColorInput = document.getElementById("fontColor");
+    const highlightColorInput = document.getElementById("highlightColor");
+    const boldInput = document.getElementById("bold");
+    const italicInput = document.getElementById("italic");
+    const highlightInput = document.getElementById("highlight");
+
+    let img = new Image();            // Image de base
+    let texts = [];                   // Tableau pour stocker les textes ajoutés
+    let selectedTextIndex = null;     // Pour savoir quel texte est déplacé
+
+    // Fonction pour ajouter un nouveau texte au canvas
+    function addText() {
+      const text = textInput.value.trim();
+      if (!text) return;
+
+      texts.push({
+        text: text,
+        x: 50,
+        y: 50,
+        font: fontFamilyInput.value,
+        size: parseInt(fontSizeInput.value),
+        color: fontColorInput.value,
+        bold: boldInput.checked,
+        italic: italicInput.checked,
+        highlight: highlightInput.checked,
+        highlightColor: highlightColorInput.value
+      });
+
+      drawMeme();
+      textInput.value = "";
+    }
+
+    // Fonction principale de dessin du mème (image + textes)
+    function drawMeme() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Dessiner l'image si chargée
+      if (img.src) {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Dessiner chaque texte un par un
+      texts.forEach(t => {
+        // Construire la font : style + taille + police
+        let style = "";
+        if (t.italic) style += "italic ";
+        if (t.bold) style += "bold ";
+        style += `${t.size}px '${t.font}'`;
+        ctx.font = style;
+
+        // Dessiner le surligneur si activé
+        if (t.highlight) {
+          const width = ctx.measureText(t.text).width;
+          ctx.fillStyle = t.highlightColor;
+          ctx.fillRect(t.x - 3, t.y - t.size, width + 6, t.size + 8);
+        }
+
+        // Dessin du texte
+        ctx.fillStyle = t.color;
+        ctx.strokeStyle = "#ff69b4";
+        ctx.lineWidth = 2;
+        ctx.fillText(t.text, t.x, t.y);
+        ctx.strokeText(t.text, t.x, t.y);
+      });
+    }
+
+    // Chargement de l'image depuis l'input file
+    imageInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = drawMeme;
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Gestion du déplacement de texte avec la souris
+    canvas.addEventListener("mousedown", e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Vérifier si on clique sur un texte
+      selectedTextIndex = texts.findIndex(t => {
+        const width = ctx.measureText(t.text).width;
+        return x >= t.x && x <= t.x + width && y >= t.y - t.size && y <= t.y;
+      });
+
+      if (selectedTextIndex !== -1) canvas.style.cursor = "grabbing";
+    });
+
+    canvas.addEventListener("mousemove", e => {
+      if (selectedTextIndex !== null) {
+        const rect = canvas.getBoundingClientRect();
+        texts[selectedTextIndex].x = e.clientX - rect.left;
+        texts[selectedTextIndex].y = e.clientY - rect.top;
+        drawMeme();
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      selectedTextIndex = null;
+      canvas.style.cursor = "grab";
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      selectedTextIndex = null;
+      canvas.style.cursor = "grab";
+    });
+
+    // Télécharger le mème en PNG
+    function downloadMeme() {
+      if (!img.src || texts.length === 0) {
+        alert("Ajoutez une image et au moins un texte !");
+        return;
+      }
+      const link = document.createElement("a");
+      link.download = "meme.png";
+      link.href = canvas.toDataURL();
+      link.click();
+      addToGallery(canvas.toDataURL());
+    }
+
+    // Partager le mème (si le navigateur supporte)
+    function shareMeme() {
+      if (!img.src || texts.length === 0) {
+        alert("Ajoutez une image et au moins un texte !");
+        return;
+      }
+      canvas.toBlob(blob => {
+        const file = new File([blob], "meme.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: "Mème",
+            text: "Voici un mème trop mignon 💕"
+          }).catch(console.error);
+        } else {
+          alert("Partage non supporté sur ce navigateur.");
+        }
+      });
+    }
+
+    // Ajouter une miniature dans la galerie
+    function addToGallery(dataUrl) {
+      const image = document.createElement("img");
+      image.src = dataUrl;
+      gallery.appendChild(image);
+    }
+  </script>
+</body>
+</html>
